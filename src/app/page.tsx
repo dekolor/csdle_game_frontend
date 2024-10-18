@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -21,22 +20,55 @@ import {
 } from "@/components/ui/table";
 
 // Mock data for weapons and leaderboard
-const weapons = ["AK-47", "M4A1-S", "AWP", "Desert Eagle"];
-const leaderboard = [
-  { rank: 1, name: "Skylex", score: 15 },
-  { rank: 2, name: "appl3Z0R", score: 14 },
-  { rank: 3, name: "dekolor", score: 13 },
-  { rank: 4, name: "Anost", score: 12 },
-  { rank: 5, name: "matricea", score: 11 },
+const weapons = [
+  "CZ75-Auto",
+  "Desert Eagle",
+  "Dual Berettas",
+  "Five-SeveN",
+  "Glock-18",
+  "P2000",
+  "P250",
+  "R8 Revolver",
+  "Tec-9",
+  "USP-S",
+  "AK-47",
+  "AUG",
+  "AWP",
+  "FAMAS",
+  "G3SG1",
+  "Galil AR",
+  "M4A1-S",
+  "M4A4",
+  "SCAR-20",
+  "SG 553",
+  "SSG 08",
+  "MAC-10",
+  "MP5-SD",
+  "MP7",
+  "MP9",
+  "PP-Bizon",
+  "P90",
+  "UMP-45",
+  "MAG-7",
+  "Nova",
+  "Sawed-Off",
+  "XM1014",
+  "M249",
+  "Negev",
+  "Knife"
 ];
 
 export default function CS2ArmoryGuess() {
   const [selectedWeapon, setSelectedWeapon] = useState("");
   const [guessInput, setGuessInput] = useState("");
-  const [dailyGuesses, setDailyGuesses] = useState(1337); // Mock data for daily guesses
+  const [dailyGuesses, setDailyGuesses] = useState(0);
   const [correctGuess, setCorrectGuess] = useState(false);
 
   const [challengeToken, setChallengeToken] = useState("");
+
+  const [hasGuessed, setHasGuessed] = useState(false);
+
+  const [leaderboardData, setLeaderboardData] = useState([]);
 
   const fetchChallengeToken = async () => {
     const challenge = localStorage.getItem("challengeToken");
@@ -55,12 +87,35 @@ export default function CS2ArmoryGuess() {
     }
   };
 
+  const fetchLeaderboardData = async () => {
+    try {
+      const response = await fetch("http://localhost:3000/leaderboard/top");
+      const data = await response.json();
+      setLeaderboardData(data);
+    } catch (error) {
+      console.error("Error fetching leaderboard data:", error);
+    }
+  };
+
+  const fetchTotalGuesses = async () => {
+    try {
+      const response = await fetch("http://localhost:3000/game/total-guesses");
+      const data = await response.json();
+      setDailyGuesses(data.totalGuesses);
+    } catch (error) {
+      console.error("Error fetching total guesses:", error);
+    }
+  };
+
   useEffect(() => {
     fetchChallengeToken();
+    fetchLeaderboardData();
+    fetchTotalGuesses();
   }, []);
 
   const handleGuess = async (e: React.FormEvent) => {
     e.preventDefault();
+    setHasGuessed(true);
     console.log(challengeToken);
 
     const response = await fetch(
@@ -88,6 +143,7 @@ export default function CS2ArmoryGuess() {
     }
     // Here you would typically send the guess to your backend
     console.log("Guessed weapon:", selectedWeapon || guessInput);
+    console.log("challenge token:", challengeToken)
     setDailyGuesses((prev) => prev + 1);
     // Reset form
     setSelectedWeapon("");
@@ -108,7 +164,7 @@ export default function CS2ArmoryGuess() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleGuess} className="space-y-4">
+            <form onSubmit={handleGuess} className="flex space-x-4">
               <Select value={selectedWeapon} onValueChange={setSelectedWeapon}>
                 <SelectTrigger className="bg-gray-700 border-orange-500 text-gray-100">
                   <SelectValue placeholder="Select a weapon" />
@@ -125,23 +181,12 @@ export default function CS2ArmoryGuess() {
                   ))}
                 </SelectContent>
               </Select>
-              <div className="flex space-x-2">
-                <Input
-                  type="text"
-                  placeholder="Or type your guess here"
-                  value={guessInput}
-                  onChange={(e) => setGuessInput(e.target.value)}
-                  className={`bg-gray-700 border-2 ${
-                    correctGuess ? 'border-green-500' : 'border-red-500'
-                  } text-gray-100 placeholder-gray-400`}
-                />
-                <Button
-                  type="submit"
-                  className="bg-orange-500 hover:bg-orange-600 text-gray-900"
-                >
-                  Guess
-                </Button>
-              </div>
+              <Button
+                type="submit"
+                className="bg-orange-500 hover:bg-orange-600 text-gray-900"
+              >
+                Guess
+              </Button>
             </form>
           </CardContent>
         </Card>
@@ -152,27 +197,33 @@ export default function CS2ArmoryGuess() {
               <CardTitle className="text-orange-500">Leaderboard</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-b border-orange-500">
-                    <TableHead className="text-orange-500">Rank</TableHead>
-                    <TableHead className="text-orange-500">Name</TableHead>
-                    <TableHead className="text-orange-500">Score</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {leaderboard.map((player) => (
-                    <TableRow
-                      key={player.rank}
-                      className="border-b border-gray-700"
-                    >
-                      <TableCell>{player.rank}</TableCell>
-                      <TableCell>{player.name}</TableCell>
-                      <TableCell>{player.score}</TableCell>
+              {leaderboardData.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-b border-orange-500">
+                      <TableHead className="text-orange-500">Rank</TableHead>
+                      <TableHead className="text-orange-500">Name</TableHead>
+                      <TableHead className="text-orange-500">Score</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {leaderboardData.map((player, index) => (
+                      <TableRow
+                        key={index}
+                        className="border-b border-gray-700"
+                      >
+                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>{player.playerName}</TableCell>
+                        <TableCell>{player.score}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center text-gray-400">
+                  There are no players in the leaderboard.
+                </div>
+              )}
             </CardContent>
           </Card>
 
